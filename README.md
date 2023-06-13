@@ -7,7 +7,8 @@
 ***
 
 # MongoDB
-MongoDB installieren und Java-Client bereitstellen.
+MongoDB installieren und Java-Client bereitstellen. Dieses Beispiel verwendet den einfachsten Fall, d. h. eine
+Standalone Installation ohne externen Netzwerkzugriff. Allerdings wird Authetifizierung implementiert.
 
 ## Systemvoraussetzungen
 Diese Anleitung wurde in folgender Umgebung getestet:
@@ -15,7 +16,7 @@ Diese Anleitung wurde in folgender Umgebung getestet:
 |Item             |Einstelung                   |Info                         |
 | :-------------: | :-------------------------: | :-------------------------: |
 |Systemarchitektur|x86_64                       |[Unterstützte Systemplattformen](https://www.mongodb.com/docs/manual/administration/production-notes/#platform-support-notes)|
-|Betriebssystem   |Ubuntu 22,04.2 LTS           |[Unterstützte Betriebssysteme](https://www.mongodb.com/docs/manual/administration/production-notes/#std-label-prod-notes-recommended-platforms)|
+|Betriebssystem   |Ubuntu 22.04.2 LTS           |[Unterstützte Betriebssysteme](https://www.mongodb.com/docs/manual/administration/production-notes/#std-label-prod-notes-recommended-platforms)|
 |MngoDB           |Version 6.0 Community Edition|[Release Notes](https://www.mongodb.com/docs/manual/release-notes/)|
 
 ## Einstellungen für den Produktionsbetrieb
@@ -121,13 +122,27 @@ Der automatische Start des Dienstes wird mit folgendem Kommando eingerichtet:
 
 Manueller Start/Stopp entsprechend über ``sudo systemctl start/stop/restart mongod``.
 
+Das Paket <i>mongodb-org</i> enthält folgende Pakete, die automatisch mit installiert werden:
+
+- <i>mongodb-org-database</i>: die Serverprozesse mongod und mongos
+- <i>mongodb-mongosh</i>: die [MongoDB Shell](https://www.mongodb.com/docs/mongodb-shell/#mongodb-binary-bin.mongosh)
+- <i>mongodb-org-tools</i>: verschiedene Diagnosetools, Im- und Exportwerkzeuge usw.
+
 ## Konfiguration
 
 ### Netzwerk
 
 Nach der Installation ist der Service standardmäßig nur über das lokale loopback Interface zu erreichen.
+Mittels Konfigurationsdatei bzw. Kommandozeilenargument kann die [bindIp](https://www.mongodb.com/docs/manual/reference/configuration-options/#mongodb-setting-net.bindIp)
+gesetzt werden. Wird in diesem Beispiel nicht verwendet (siehe [IP Binding](https://www.mongodb.com/docs/manual/core/security-mongodb-configuration/)).
 
+### Sicherheit
 
+Falls die Installation über das Netzwerk erreichbar ist, sollten folgende Sicherheitsempfehlungen beachtet werden:
+
+- [Checklste](https://www.mongodb.com/docs/manual/administration/security-checklist/)
+- [Authetifizierung](https://www.mongodb.com/docs/manual/administration/security-checklist/#std-label-checklist-auth)
+- Serverhärtung(https://www.mongodb.com/docs/manual/core/security-hardening/)
 
 # Java
 
