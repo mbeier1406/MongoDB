@@ -150,7 +150,8 @@ angelegt. Die Dateien
 
 ## Authentifizierung
 
-Damit nicht jeder auf dem Rechner angemeldete Benutzer auf die Datenbank zugreifen kann, wird eine Authentifizierung eingerichtet:
+Damit nicht jeder auf dem Rechner angemeldete Benutzer auf die Datenbank zugreifen kann, wird eine Authentifizierung eingerichtet.
+Zunächst der administartive Benutzer in der Datenbank <i>admin</i>:
 
 ```
 $ mongosh
@@ -190,11 +191,18 @@ $ mongosh
 MongoServerError: command listDatabases requires authentication
 > exit
 $ mongosh -u root -p --authenticationDatabase admin
+Enter password: ****
 > show dbs
 admin      180.00 KiB
 config     108.00 KiB
 local       72.00 KiB
 ```
+
+## Role-Based Access Control (RBAC)
+
+Da die Fachanwendung nicht mit dem administrativen User <i>root</i> arbeiten sollen, wird für
+jede Anwendung ein entsprechender Benutzer angelegt, der einer oder mehreren Rollen (auf welche Ressourcen
+darf zugegriffen werden und welche Aktionen dürfen ausgeführt werden?) zugewiesen wird.
 
 
 db.createUser({ user: "erx", pwd: passwordPrompt(), roles: [ {role: "readWrite", db: "erezepte"} ] })
