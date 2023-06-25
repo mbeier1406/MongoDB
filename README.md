@@ -142,7 +142,62 @@ Falls die Installation über das Netzwerk erreichbar ist, sollten folgende Siche
 
 - [Checklste](https://www.mongodb.com/docs/manual/administration/security-checklist/)
 - [Authetifizierung](https://www.mongodb.com/docs/manual/administration/security-checklist/#std-label-checklist-auth)
-- Serverhärtung(https://www.mongodb.com/docs/manual/core/security-hardening/)
+- [Serverhärtung](https://www.mongodb.com/docs/manual/core/security-hardening/)
+
+Da die Datenbank in dieser Demo nicht über das Netzwerk erreichbar sein soll, ist das Einrichten einer Firewall
+(z. B. [ufw](https://wiki.ubuntuusers.de/ufw/)) optional. Während der Installation wird ein Benutzer und eine Gruppe <i>mongodb</i>
+angelegt. Die Dateien 
+
+## Authentifizierung
+
+Damit nicht jeder auf dem rechner angemeldete Benutzer auf die Datenbank zugreifen kann, wird eine Authentifizierung eingerichtet:
+
+```
+$ mongosh
+> show dbs
+admin      180.00 KiB
+config      60.00 KiB
+local       72.00 KiB
+> use admin
+switched to db admin
+> db.createUser({ /* Administrativen Benutzer anlegen */
+user: "root",
+pwd: passwordPrompt(),
+roles: [ { role: "userAdminAnyDatabase", db: "admin" }, "readWriteAnyDatabase" ]
+})
+```
+
+Damit die Authentifizierung wirkasm wir muss sie in <code>/etc/mongod.conf</code> konfiguriert werden.
+
+	$ sudo vi /etc/mongod.conf
+
+Der Eintrag <code># security:</code> wird geändert in:
+
+```
+security:
+  authorization: enabled
+```
+
+Der MongoDB-Deamon muss danach neu gestartet werden:
+
+	$ sudo systemctl restart mongod
+
+db.createUser({ user: "erx", pwd: passwordPrompt(), roles: [ {role: "readWrite", db: "erezepte"} ] })
+db.dropUser("erx")
+db.system.users.find()
+
+db.runCommand({ connectionStatus: 1 })
+
+db.getUsers()
+
+
+db.speicher.insert({requestid: 123, erezeptid: "120.000.000.123', erezeptdata: "dsaksfdkfskj"} )
+db.erezepte.delete();
+
+
+## Anwendung
+
+Die Konfiguration der Datenbank erfolgt über die Datei <code>/etc/mongod.conf</code>.
 
 # Java
 
