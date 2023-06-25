@@ -150,7 +150,7 @@ angelegt. Die Dateien
 
 ## Authentifizierung
 
-Damit nicht jeder auf dem rechner angemeldete Benutzer auf die Datenbank zugreifen kann, wird eine Authentifizierung eingerichtet:
+Damit nicht jeder auf dem Rechner angemeldete Benutzer auf die Datenbank zugreifen kann, wird eine Authentifizierung eingerichtet:
 
 ```
 $ mongosh
@@ -167,7 +167,7 @@ roles: [ { role: "userAdminAnyDatabase", db: "admin" }, "readWriteAnyDatabase" ]
 })
 ```
 
-Damit die Authentifizierung wirkasm wir muss sie in <code>/etc/mongod.conf</code> konfiguriert werden.
+Damit die Authentifizierung wirksam wir muss sie in <code>/etc/mongod.conf</code> konfiguriert werden.
 
 	$ sudo vi /etc/mongod.conf
 
@@ -181,6 +181,21 @@ security:
 Der MongoDB-Deamon muss danach neu gestartet werden:
 
 	$ sudo systemctl restart mongod
+
+Um die Datenbank im Anschluß benutzen zu können, ist eine Anmeldung erforderlich:
+
+```
+$ mongosh
+> show dbs
+MongoServerError: command listDatabases requires authentication
+> exit
+$ mongosh -u root -p --authenticationDatabase admin
+> show dbs
+admin      180.00 KiB
+config     108.00 KiB
+local       72.00 KiB
+```
+
 
 db.createUser({ user: "erx", pwd: passwordPrompt(), roles: [ {role: "readWrite", db: "erezepte"} ] })
 db.dropUser("erx")
