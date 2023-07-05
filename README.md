@@ -204,6 +204,7 @@ Da die Fachanwendung nicht mit dem administrativen User <i>root</i> arbeiten sol
 jede Anwendung ein entsprechender Benutzer angelegt, der einer oder mehreren Rollen (auf welche Ressourcen
 darf zugegriffen werden und welche Aktionen dürfen ausgeführt werden?) zugewiesen wird.
 
+[Vordefinierte Rollen](https://docs.mongodb.com/manual/reference/built-in-roles/)
 
 db.createUser({ user: "erx", pwd: passwordPrompt(), roles: [ {role: "readWrite", db: "erezepte"} ] })
 db.dropUser("erx")
