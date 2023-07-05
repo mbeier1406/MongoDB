@@ -146,7 +146,17 @@ Falls die Installation über das Netzwerk erreichbar ist, sollten folgende Siche
 
 Da die Datenbank in dieser Demo nicht über das Netzwerk erreichbar sein soll, ist das Einrichten einer Firewall
 (z. B. [ufw](https://wiki.ubuntuusers.de/ufw/)) optional. Während der Installation wird ein Benutzer und eine Gruppe <i>mongodb</i>
-angelegt. Die Dateien 
+angelegt.
+
+### Monitoring
+
+Auslastung der Datenbank anzeigen:
+
+	> db.stats() /* Zusammengefasste Statistik */
+	> db.serverStatus() /* Nutzung des Servers */
+
+	$ mongostat -u root --authenticationDatabase=admin # Status der laufenden Instanz
+	$ mongotop -u root --authenticationDatabase=admin  # Benötigte Zeit für Lesen und Schreiben der Instanz
 
 ## Authentifizierung
 
@@ -161,11 +171,14 @@ config      60.00 KiB
 local       72.00 KiB
 > use admin
 switched to db admin
-> db.createUser({ /* Administrativen Benutzer anlegen */
+admin> db.createUser({ /* Administrativen Benutzer anlegen */
 user: "root",
 pwd: passwordPrompt(),
 roles: [ { role: "userAdminAnyDatabase", db: "admin" }, "readWriteAnyDatabase" ]
 })
+/* Für Superuser admin> db.grantRolesToUser('root', [{ role: 'root', db: 'admin' }]) */
+admin> db.runCommand({ connectionStatus: 1 })
+/* Authinfo anzeigen */
 ```
 
 Damit die Authentifizierung wirksam wir muss sie in <code>/etc/mongod.conf</code> konfiguriert werden.
@@ -202,21 +215,49 @@ local       72.00 KiB
 
 Da die Fachanwendung nicht mit dem administrativen User <i>root</i> arbeiten sollen, wird für
 jede Anwendung ein entsprechender Benutzer angelegt, der einer oder mehreren Rollen (auf welche Ressourcen
-darf zugegriffen werden und welche Aktionen dürfen ausgeführt werden?) zugewiesen wird.
+darf zugegriffen werden und welche Aktionen dürfen ausgeführt werden?) zugewiesen wird. Standardmäßig
+in MongoDB vorhandene Rollen sind [hier zu finden]8https://docs.mongodb.com/manual/reference/built-in-roles/).
+Anlegen einer Datenbank <i>erezepte</i> mit einer Collection <i>erx_202307</i> Users:
 
+```
+$ mongosh -u root -p --authenticationDatabase=admin
+Enter password: ****
 
-db.createUser({ user: "erx", pwd: passwordPrompt(), roles: [ {role: "readWrite", db: "erezepte"} ] })
-db.dropUser("erx")
-db.system.users.find()
+admin> use erezepte
+switched to db erezepte /* DB existiert hier noch nicht */
+erezepte> db.erx_202307.insert({eRezeptId: '123.456.789.00', eRezeptData: 'ZVJlemVwdAo='})
+DeprecationWarning: Collection.insertOne() is deprecated. Use insertOne, insertMany, or bulkWrite.
+{
+  acknowledged: true,
+  insertedIds: { '0': ObjectId("64a5a358f060147b960cfe84") }
+} /* DB wurde hier angelegt */
+/* Zum Löschen db.erx_202307.delete() */
 
-db.runCommand({ connectionStatus: 1 })
+erezepte> db.createUser({ user: "erx", pwd: passwordPrompt(), roles: [{ role: "readWrite", db: "erezepte" }] })
+Enter password
+***{ ok: 1 } /* User erx darf Dokumente einstellen und lesen */
 
-db.getUsers()
+erezepte> db.getUsers() /* Erzeugten User ansehen */
+erezepte> use admin
+switched to db admin
+admin> db.system.users.find()
+[ ... ] /* zeigt die User root und erx an */
+```
 
+Der neu angelegt User kann jetzt verwendet werden:
 
-db.speicher.insert({requestid: 123, erezeptid: "120.000.000.123', erezeptdata: "dsaksfdkfskj"} )
-db.erezepte.delete();
+```
+$ mongosh -u erx -p --authenticationDatabase=erezepte
+Enter password: ***
+test> show dbs
+erezepte  72.00 KiB
+test> use erezepte
+switched to db erezepte
+erezepte> show collections
+erx_202307
+erezepte> db.erx_202307.find()
 
+```
 
 ## Anwendung
 
