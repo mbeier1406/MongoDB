@@ -259,9 +259,7 @@ erezepte> db.erx_202307.find()
 
 ```
 
-## Anwendung
+# Anwendung
 
-Die Konfiguration der Datenbank erfolgt über die Datei <code>/etc/mongod.conf</code>.
 
-# Java
 
