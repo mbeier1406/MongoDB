@@ -4,17 +4,24 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bson.Document;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
 
@@ -75,7 +82,7 @@ public class MongoDbDao implements Dao<Dao.ERezept> {
 	/** {@inheritDoc} */
 	@Override
 	public List<String> getDatabaseNames() {
-		List<String> dbs = new ArrayList<>();
+		final List<String> dbs = new ArrayList<>();
 		MongoIterable<String> listDatabaseNames = mongoClient.listDatabaseNames();
 		listDatabaseNames.forEach(n -> dbs.add(n));
 		return dbs;
@@ -83,9 +90,38 @@ public class MongoDbDao implements Dao<Dao.ERezept> {
 
 	/** {@inheritDoc} */
 	@Override
-	public ERezept find(String eRezeptId) {
-		// TODO Auto-generated method stub
-		return null;
+	public List<String> getCollectionNames(final String db) {
+		final List<String> colls = new ArrayList<>();
+		final var database = mongoClient.getDatabase(requireNonNull(db, "db ist NULL!"));
+		final var listCollectionNames = database.listCollectionNames();
+		listCollectionNames.forEach(n -> colls.add(n));
+		return colls;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public Optional<ERezept> find(String eRezeptId) {
+		final Map<String, ERezept> eRezept = new HashMap<>();
+		getDatabaseNames().stream().forEach(
+				db -> {
+					getCollectionNames(db).stream().forEach(coll -> {
+						final Document query = new Document();
+						query.put("eRezeptId", eRezeptId);
+						final var database = mongoClient.getDatabase(db);
+						final MongoCollection<Document> collection = database.getCollection(coll);
+						final FindIterable<Document> cursor = collection.find(query);
+						try ( final MongoCursor<Document> itr = cursor.cursor() ) {
+							while ( itr.hasNext() ) {
+								if ( eRezept.get(eRezeptId) != null )
+									throw new IllegalArgumentException("E-Rezept mehrfach vorhanden: "+eRezeptId);
+								final Document erx = itr.next();
+								String eRezeptData = (String) erx.get("eRezeptData");
+								eRezept.put(eRezeptId, new ERezept(eRezeptId, eRezeptData));
+							}
+						}
+					});
+				});
+		return Optional.ofNullable(eRezept.get(eRezeptId));
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package com.github.mbeier1406.mongodb;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Definiert alle Mehoden zum persistieren der E-Rezepte.
@@ -22,10 +23,18 @@ public interface Dao<T> {
 	public List<String> getDatabaseNames();
 
 	/**
-	 * Liefert zu einer ID das zugehörige E-Rezept.
+	 * Listet alle vorhandenen Collections auf.
+	 * @param db Name der Datenbank
+	 * @return Liste der Collections
+	 */
+	public List<String> getCollectionNames(final String db);
+
+	/**
+	 * Liefert zu einer ID das zugehörige E-Rezept.</p>
+	 * <b>Achtung</b>: sucht in allen Collections aller Datenbanken!
 	 * @param eRezeptId die Id
 	 * @return das E-Rezept
 	 */
-	public T find(final String eRezeptId);
+	public Optional<T> find(final String eRezeptId);
 
 }
