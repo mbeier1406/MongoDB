@@ -80,7 +80,7 @@ beachtet werden. Insbesondere:
 	</li>
 </ul>
 <p/>
-Für den Betrieb mit [VMWare](https://www.mongodb.com/docs/v6.0/administration/production-notes/#vmware) gelten weitere Empfehlungen.
+Für den Betrieb mit <a href="https://www.mongodb.com/docs/v6.0/administration/production-notes/#vmware">VMWare</a> gelten weitere Empfehlungen.
 
 ## Installation
 Installiert wird das offizielle <i>mongodb-org</i> Paket in der Version MongoDB Community für
