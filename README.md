@@ -37,7 +37,7 @@ beachtet werden. Insbesondere:
 		befinden, die zur aktuell konfigurierten <a href="https://www.mongodb.com/docs/v6.0/core/storage-engines/">Speichertechnik</a>. Für das Verzeichnis
 		benötigt MongoDB Lese- und Schreibrechte. Virenscanner müssen das Verzichnis ignorieren. Es kann eine Speichertechnik mit automatischer Verschlüsselung
 		oder Kompression konfiguriert werden. Die Standard Speicherkonfiguraation
-		<i>[Wired Tiger](https://www.mongodb.com/docs/v6.0/core/wiredtiger/#std-label-storage-wiredtiger)</i> wird beibehalten.
+		<i><a href="https://www.mongodb.com/docs/v6.0/core/wiredtiger/#std-label-storage-wiredtiger">Wired Tiger</a></i> wird beibehalten.
 	</li>
 	<li>
 		<b>Journaling</b>:
@@ -45,7 +45,7 @@ beachtet werden. Insbesondere:
 		sollte <a href="https://www.mongodb.com/docs/v6.0/core/journaling/">Journaling</a> eingeschaltet sein.
 	</li>
 	<li>
-		<b><i>[write concern](https://www.mongodb.com/docs/v6.0/reference/write-concern/)</i></b>:
+		<b><i><a href="https://www.mongodb.com/docs/v6.0/reference/write-concern/">write concern</a></i></b>:
 		Beim Standalonebetrieb wird als Konfiguration <code>w:1, j: true, wtimeout: 500</code> gewählt.
 	</li>
 	<li>
@@ -60,7 +60,7 @@ beachtet werden. Insbesondere:
 		überwacht</a>.
 	</li>
 	<li>
-		<b>[Hardwareausstattung](https://www.mongodb.com/docs/v6.0/administration/production-notes/#std-label-prod-notes-ram)</b>:
+		<b><a href="https://www.mongodb.com/docs/v6.0/administration/production-notes/#std-label-prod-notes-ram">Hardwareausstattung</a></b>:
 		Es wird mit der Minimalausstattung von zwei Cores und 4 GB RAm (1,5 GB für MongoDB) verwendet. Als Speichersystem wird RAID
 		über SSD empfohlen, SATA ist möglich.
 	</li>
