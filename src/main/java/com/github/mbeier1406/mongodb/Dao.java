@@ -30,6 +30,14 @@ public interface Dao<T> {
 	public List<String> getCollectionNames(final String db);
 
 	/**
+	 * Fügt ein E-Rezept in die vorgegebene Collection ein.
+	 * @param collectionName die Collection, in die das Rezept eingestellt werden soll
+	 * @param eRezeptId ID des Rezepts
+	 * @param t das E-Rezept
+	 */
+	public void insert(final String collectionName, final String eRezeptId, final T t);
+
+	/**
 	 * Liefert zu einer ID das zugehörige E-Rezept.</p>
 	 * <b>Achtung</b>: sucht in allen Collections aller Datenbanken!
 	 * @param eRezeptId die Id
