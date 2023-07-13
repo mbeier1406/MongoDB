@@ -34,8 +34,9 @@ public interface Dao<T> {
 	 * @param collectionName die Collection, in die das Rezept eingestellt werden soll
 	 * @param eRezeptId ID des Rezepts
 	 * @param t das E-Rezept
+	 * @return die Id des erzeugten Datensatzes
 	 */
-	public void insert(final String collectionName, final String eRezeptId, final T t);
+	public String insert(final String collectionName, final String eRezeptId, final T t);
 
 	/**
 	 * Liefert zu einer ID das zugehörige E-Rezept.</p>

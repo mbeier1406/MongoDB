@@ -231,7 +231,16 @@ DeprecationWarning: Collection.insertOne() is deprecated. Use insertOne, insertM
   acknowledged: true,
   insertedIds: { '0': ObjectId("64a5a358f060147b960cfe84") }
 } /* DB wurde hier angelegt */
-/* Zum Löschen db.erx_202307.delete() */
+/*
+	Zum Löschen
+	db.erx_202307.find()
+	db.erx_202307.deleteOne({_id: ObjectId("..."))
+	Leeren:
+	db.erx_202307.remove({})
+*/
+/* E-Rezepte sollen eindeutig sein! */
+erezepte> db.erx_202307.createIndex({ "eRezeptId": 1 }, { unique: true })
+eRezeptId_1
 
 erezepte> db.createUser({ user: "erx", pwd: passwordPrompt(), roles: [{ role: "readWrite", db: "erezepte" }] })
 Enter password

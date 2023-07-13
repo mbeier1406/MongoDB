@@ -26,10 +26,20 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
+import com.mongodb.client.result.InsertOneResult;
 
 /**
- * MongoDB-Implementierung für das Persitieren von E-Rezepten.
+ * MongoDB-Implementierung für das Persitieren von E-Rezepten. Die Collection muss zuvor wie fokgt
+ * in einer eigenen Datenbank angelegt worden sein.
+ * <pre><code>
+ * $ mongosh -u erx -p --authenticationDatabase=erezepte
+ * test> use erezepte
+ * erezepte> db.erx_202307.insert({eRezeptId: '123.456.789.00', eRezeptData: 'ZVJlemVwdAo='})
+ * erezepte> db.erx_202307.createIndex({ "eRezeptId": 1 }, { unique: true })
+ * eRezeptId_1
+ * </code></pre>
  * @author mbeier
+ * @see <a href="https://github.com/mbeier1406/MongoDB/tree/main">README</a>
  */
 public class MongoDbDao implements Dao<Dao.ERezept> {
 
@@ -102,13 +112,17 @@ public class MongoDbDao implements Dao<Dao.ERezept> {
 
 	/** {@inheritDoc} */
 	@Override
-	public void insert(String collectionName, String eRezeptId, ERezept eRezept) {
+	public String insert(String collectionName, String eRezeptId, ERezept eRezept) {
 		try ( CloseableThreadContext.Instance ctx = put("collectionName", collectionName).put("eRezept", eRezept.toString()) ) {
 			final MongoCollection<Document> collection = erxDatabase.getCollection(collectionName);
 			final var document = new Document();
 			document.putIfAbsent("eRezeptId", eRezeptId);
 			document.putIfAbsent("eRezeptData", eRezept.eRezeptData());
-			collection.insertOne(document);
+			InsertOneResult result = collection.insertOne(document);
+			LOGGER.trace("result={}", result);
+			final var _Id = result.getInsertedId().asObjectId().getValue().toHexString();
+			LOGGER.trace("_Id={}", _Id);
+			return _Id;
 		}
 	}
 
