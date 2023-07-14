@@ -42,6 +42,14 @@ public interface Dao<T> {
 	 * Liefert zu einer ID das zugehörige E-Rezept.</p>
 	 * <b>Achtung</b>: sucht in allen Collections aller Datenbanken!
 	 * @param eRezeptId die Id
+	 * @return <b>true</b>, wenn das E-Rezept gelöscht wurde, sonst <b>false</b>
+	 */
+	public boolean delete(final String collectionName, final String eRezeptId);
+
+	/**
+	 * Löscht das E-Rezept mit der angegebenen ID.</p>
+	 * <b>Achtung</b>: sucht in allen Collections aller Datenbanken!
+	 * @param eRezeptId die Id
 	 * @return das E-Rezept
 	 */
 	public Optional<T> find(final String eRezeptId);

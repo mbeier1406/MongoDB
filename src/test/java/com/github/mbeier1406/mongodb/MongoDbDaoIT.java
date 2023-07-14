@@ -1,5 +1,6 @@
 package com.github.mbeier1406.mongodb;
 
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -65,10 +66,12 @@ public class MongoDbDaoIT {
 		assertThat(collections, hasItem(COLLECTION));
 	}
 
-	/** */
+	/** Es wird erwartet, dass beim Einfügen des E-Rezeptes keine Exception geworfen und eine ObjectId geliefert wird */
 	@Test
 	public void d_testeInsert() {
-		mongoDbDao.insert(COLLECTION, "123.456.790.00", new ERezept("123.456.790.00", "ZVJlemVwdAoXX="));
+		final var objectId = mongoDbDao.insert(COLLECTION, "123.456.790.00", new ERezept("123.456.790.00", "ZVJlemVwdAoXX="));
+		LOGGER.info("objectId={}", objectId);
+		assertThat(objectId, notNullValue());
 	}
 
 	/** Stellt sicher, dass das zuvor manuell eingestellte E-Rezept gefunden wird */ 
@@ -79,6 +82,14 @@ public class MongoDbDaoIT {
 		LOGGER.info("eRezept={}", eRezept);
 		assertThat(eRezept, not(equalTo(Optional.empty())));
 		assertThat(eRezept.get().eRezeptId(), equalTo((eRezeptId)));
+	}
+
+	/** Es wird erwartet, dass beim Einfügen des E-Rezeptes keine Exception geworfen und eine ObjectId geliefert wird */
+	@Test
+	public void d_testeDelete() {
+		final var objectId = mongoDbDao.delete(COLLECTION, "123.456.790.00");
+		LOGGER.info("objectId={}", objectId);
+		assertThat(objectId, notNullValue());
 	}
 
 }

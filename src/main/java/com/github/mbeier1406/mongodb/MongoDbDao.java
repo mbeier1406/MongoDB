@@ -26,6 +26,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.InsertOneResult;
 
 /**
@@ -118,11 +119,26 @@ public class MongoDbDao implements Dao<Dao.ERezept> {
 			final var document = new Document();
 			document.putIfAbsent("eRezeptId", eRezeptId);
 			document.putIfAbsent("eRezeptData", eRezept.eRezeptData());
-			InsertOneResult result = collection.insertOne(document);
+			final InsertOneResult result = collection.insertOne(document);
 			LOGGER.trace("result={}", result);
 			final var _Id = result.getInsertedId().asObjectId().getValue().toHexString();
 			LOGGER.trace("_Id={}", _Id);
 			return _Id;
+		}
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean delete(String collectionName, String eRezeptId) {
+		try ( CloseableThreadContext.Instance ctx = put("collectionName", collectionName).put("eRezeptId", eRezeptId) ) {
+			final MongoCollection<Document> collection = erxDatabase.getCollection(collectionName);
+			final var document = new Document();
+			document.putIfAbsent("eRezeptId", eRezeptId);
+			DeleteResult result = collection.deleteOne(document);
+			LOGGER.trace("result={}", result);
+			final var anzahlGeloescht = result.getDeletedCount();
+			LOGGER.trace("anzahlGeloescht={}", anzahlGeloescht);
+			return anzahlGeloescht == 1;
 		}
 	}
 
