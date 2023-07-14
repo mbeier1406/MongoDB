@@ -51,7 +51,7 @@ public class MongoDbDaoIT {
 	/** Prüfen, ob die Standard-URL korrekt geladen wird */
 	@Test
 	public void a_testeUrl() {
-		f_testeDelete(); // Falls das Test-Erezept sich noch in der DB befindet
+		mongoDbDao.delete(EREZEPTE_COLL, EREZEPT_ID); // Falls das Test-Erezept sich noch in der DB befindet
 		LOGGER.info("URL: {}", mongoDbDao.getConnectionInfo());
 		assertThat(mongoDbDao.getConnectionInfo(), equalTo("mongodb://localhost:27017"));
 	}
@@ -80,7 +80,7 @@ public class MongoDbDaoIT {
 		assertThat(objectId, notNullValue());
 	}
 
-	/** Stellt sicher, dass das zuvor manuell eingestellte E-Rezept gefunden wird */ 
+	/** Stellt sicher, dass das zuvor eingestellte E-Rezept gefunden wird */ 
 	@Test
 	public void e_testeERezeptSuche() {
 		Optional<ERezept> eRezept = mongoDbDao.find(EREZEPT_ID);
@@ -98,12 +98,21 @@ public class MongoDbDaoIT {
 		assertThat(geloescht, equalTo(true));
 	}
 
-	/** Stellt sicher, dass das zuvor manuell gelöscgte E-Rezept nicht mehr gefunden wird */ 
+	/** Stellt sicher, dass das zuvor gelöschte E-Rezept nicht mehr gefunden wird */ 
 	@Test
 	public void g_testeERezeptSuche() {
 		Optional<ERezept> eRezept = mongoDbDao.find(EREZEPT_ID);
 		LOGGER.info("eRezept={}", eRezept);
 		assertThat(eRezept, equalTo(Optional.empty()));
+	}
+
+	/** Es wird erwartet, dass beim Update des E-Rezeptes ein Datensatz geändert wird */
+	@Test
+	public void h_testeUpdate() {
+		d_testeInsert(); // E-Rezept wieder anlegen
+		final var anzahlGeaendert = mongoDbDao.update(EREZEPTE_COLL, new ERezept(EREZEPT_ID, "ABCDEF0123456789="));
+		LOGGER.info("anzahlGeaendert={}", anzahlGeaendert);
+		assertThat(anzahlGeaendert, equalTo(1L));
 	}
 
 }

@@ -54,4 +54,6 @@ public interface Dao<T> {
 	 */
 	public Optional<T> find(final String eRezeptId);
 
+	public long update(final String collectionName, final T t);
+
 }

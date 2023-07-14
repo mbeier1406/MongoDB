@@ -28,6 +28,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.InsertOneResult;
+import com.mongodb.client.result.UpdateResult;
 
 /**
  * MongoDB-Implementierung für das Persitieren von E-Rezepten. Die Collection muss zuvor wie fokgt
@@ -113,7 +114,7 @@ public class MongoDbDao implements Dao<Dao.ERezept> {
 
 	/** {@inheritDoc} */
 	@Override
-	public String insert(String collectionName, String eRezeptId, ERezept eRezept) {
+	public String insert(final String collectionName, final String eRezeptId, final ERezept eRezept) {
 		try ( CloseableThreadContext.Instance ctx = put("collectionName", collectionName).put("eRezept", eRezept.toString()) ) {
 			final MongoCollection<Document> collection = erxDatabase.getCollection(collectionName);
 			final var document = new Document();
@@ -167,6 +168,25 @@ public class MongoDbDao implements Dao<Dao.ERezept> {
 				});
 			});
 			return Optional.ofNullable(eRezept.get(eRezeptId));
+		}
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public long update(final String collectionName, final ERezept eRezept) {
+		try ( CloseableThreadContext.Instance ctx = put("collectionName", collectionName).put("eRezept", eRezept.toString()) ) {
+			final MongoCollection<Document> collection = erxDatabase.getCollection(collectionName);
+			final var query = new Document();
+			query.put("eRezeptId", eRezept.eRezeptId());
+			final var newObject = new Document();
+			newObject.put("eRezeptData", eRezept.eRezeptData());
+			final var updateObject = new Document();
+			updateObject.put("$set", newObject);
+			final UpdateResult result = collection.updateOne(query, updateObject);
+			LOGGER.trace("result={}", result);
+			final var anzahlGeaendert = result.getModifiedCount();
+			LOGGER.trace("anzahlGeaendert={}", anzahlGeaendert);
+			return anzahlGeaendert;
 		}
 	}
 
