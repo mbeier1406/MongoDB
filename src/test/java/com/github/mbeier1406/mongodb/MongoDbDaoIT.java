@@ -83,11 +83,10 @@ public class MongoDbDaoIT {
 	/** Stellt sicher, dass das zuvor manuell eingestellte E-Rezept gefunden wird */ 
 	@Test
 	public void e_testeERezeptSuche() {
-		final var eRezeptId = EREZEPT_ID;
-		Optional<ERezept> eRezept = mongoDbDao.find(eRezeptId);
+		Optional<ERezept> eRezept = mongoDbDao.find(EREZEPT_ID);
 		LOGGER.info("eRezept={}", eRezept);
 		assertThat(eRezept, not(equalTo(Optional.empty())));
-		assertThat(eRezept.get().eRezeptId(), equalTo((eRezeptId)));
+		assertThat(eRezept.get().eRezeptId(), equalTo((EREZEPT_ID)));
 	}
 
 	/** Es wird erwartet, dass beim Einfügen des E-Rezeptes keine Exception geworfen und eine ObjectId geliefert wird */
@@ -97,6 +96,14 @@ public class MongoDbDaoIT {
 		LOGGER.info("geloescht={}", geloescht);
 		assertThat(geloescht, notNullValue());
 		assertThat(geloescht, equalTo(true));
+	}
+
+	/** Stellt sicher, dass das zuvor manuell gelöscgte E-Rezept nicht mehr gefunden wird */ 
+	@Test
+	public void g_testeERezeptSuche() {
+		Optional<ERezept> eRezept = mongoDbDao.find(EREZEPT_ID);
+		LOGGER.info("eRezept={}", eRezept);
+		assertThat(eRezept, equalTo(Optional.empty()));
 	}
 
 }
