@@ -262,10 +262,33 @@ test> show dbs
 erezepte  72.00 KiB
 test> use erezepte
 switched to db erezepte
-erezepte> show collections
-erx_202307
-erezepte> db.erx_202307.find()
 
+/* Standard CRUD Operationen */
+erezepte> db.erx_202307.insertOne({ eRezetId: '123.456.789.00', eRezeptData: '0987654321FEDCBA='});
+erezepte> db.erx_202307.insertMany([ { eRezeptId: '123.456.788.00', eRezeptData: 'FEDCBA0987654321=' }, { eRezeptId: '123.456.787.00', eRezeptData: 'ABCDEF1234567890=' } ]);
+erezepte> db.erx_202307.find().pretty();
+erezepte> db.erx_202307.find({ eRezeptId: '123.456.787.00' });
+erezepte> db.erx_202307.find({ eRezeptId: { $ne: '123.456.788.00' } }); /* Alle außer dem genannten */
+erezepte> db.erx_202307.find({ eRezeptId: { $in: [ '123.456.788.00', '123.456.790.00' ] } }); /* Aus einer Liste */
+erezepte> db.erx_202307.find({ datum: { $lt: ISODate("2023-07-16T01:14:24.001Z") } }); /* entsprechend $gt */
+erezepte> db.erx_202307.find({ datum: { $lt: ISODate("2023-07-16T01:14:24.001Z") }, eRezetId: '123.456.789.00' }); /* Kombination mehrerer Attribute, implizites AND */
+erezepte> db.erx_202307.find({ $or: [ { datum: { $lt: ISODate("2023-07-16T01:14:24.001Z") } }, { eRezetId: '123.456.789.00' } ] }); /* Entsprechend $and */
+erezepte> db.erx_202307.find({ requestIds: 2 }); /* Abfrage von Werten eines Arrays */
+erezepte> db.erx_202307.find({ "wawi.version": { $gt: 1 } }); /* Abfrage einer Unterstruktur */
+erezepte> db.erx_202307.find({ requestIds: 2 }, { "wawi.name": 1, "wawi.version": 1 } ); /* Projektionen: ausgewählte Felder anzeigen (Inklusion) */
+erezepte> db.erx_202307.find({}, { wawi: 0 }); /* Projektionen: ausgewählte Felder anzeigen (Exklusion), z. B. ohne ID: ...find({}, { _id: 0 }) */
+erezepte> db.erx_202307.find({}).limit(1); /* Treffermenge begrenzen */
+erezepte> db.erx_202307.find({ "wawi.version": { $gt: 0 } }, { _id: 0, eRezeptId: 1, eRezeptData: 1 }).limit(10).sort({ eRezeptId: -1}); /* Ausgabe absteigend sortieren und begrenzen */
+erezepte> db.erx_202307.countDocuments(); /* Oder erezepte> db.erx_202307.find({}).count(); */
+erezepte> db.erx_202307.updateOne({ eRezeptId: '123.456.787.00' }, { $set: { eRezeptData: 'ABCDEF1234567890xxx=' } });
+erezepte> db.erx_202307.updateOne({ eRezeptId: '123.456.790.00' }, { $set: { requestIds: [ 1, 2, 3 ] }}); /* Array als Attribut hinzufügen */
+erezepte> db.erx_202307.updateOne({ eRezeptId: '123.456.788.00' }, { $set: { wawi: { name: 'GFI', version: 1 } }}); /* Struktur als Attribut hinzufügen */
+erezepte> db.erx_202307.updateMany({}, { $set: { datum: ISODate("2023-07-16T01:14:24.000Z") }}); /* Ein Feld hinzufügen */
+erezepte> db.erx_202307.deleteOne({ eRezeptId: '123.456.787.00' });
+/* erezepte> db.erx_202307.deleteMany(...); */
+
+erezepte> show collections;
+erx_202307
 ```
 
 # Anwendung
