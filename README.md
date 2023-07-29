@@ -244,7 +244,7 @@ admin> db.system.users.find()
 [ ... ] /* zeigt die User root und erx an */
 ```
 
-Der neu angelegt User kann jetzt verwendet werden:
+Der neu angelegte User kann jetzt verwendet werden:
 
 ```
 $ mongosh -u erx -p --authenticationDatabase=erezepte
@@ -255,7 +255,12 @@ test> use erezepte
 switched to db erezepte
 erezepte> show collections
 erx_202307
-erezepte> db.erx_202307.find()
+erezepte> db.erx_202307.find({}).pretty(); /* Gesamte Collection anzeigen */
+erezepte> db.erx_202307.find({$and: [{requestId: 2}, {eRezeptId: '123.456.790.03'}]}).pretty(); /* bestimmtes E-Rezept suchen */
+erezepte> db.erx_202307.createIndex({"requestId": 1, "eRezeptId": 1}, {"unique": true}); /* Unique Index anlegen */
+erezepte> db.erx_202307.find({$and: [{requestId: 2}, {eRezeptId: '123.456.790.03'}]}).explain("executionStats"); /* Prüfen, ob ein Index benutzt wird */
+erezepte> db.erx_202307.find({requestId: { $gt: 1 }}).sort({eRezeptId: -1}); /* Suche nach RequestId > 2 und absteigend nach E-Rezept-ID sortieren */
+erezepte> db.erx_202307.getIndexes();
 
 ```
 
