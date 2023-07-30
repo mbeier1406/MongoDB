@@ -261,10 +261,18 @@ erezepte> db.erx_202307.createIndex({"requestId": 1, "eRezeptId": 1}, {"unique":
 erezepte> db.erx_202307.find({$and: [{requestId: 2}, {eRezeptId: '123.456.790.03'}]}).explain("executionStats"); /* Prüfen, ob ein Index benutzt wird */
 erezepte> db.erx_202307.find({requestId: { $gt: 1 }}).sort({eRezeptId: -1}); /* Suche nach RequestId > 2 und absteigend nach E-Rezept-ID sortieren */
 erezepte> db.erx_202307.getIndexes();
-
+/* Aggregierung nach Request-ID */
+erezepte> db.erx_202307.aggregate([
+	{$match: {requestId: {$in: [ 2,3]}}},
+	{ $sort: { requestId : -1}},
+	{ $group: {"_id": "$requestId", "anz": {$sum: 1}}}
+]);
 ```
 
-# Anwendung
+Falls eine intensive Benutzung der Datenbank erforderlch ist, kann statt <code>mongosh</code> auch
+der [MongoDB Compass](https://www.mongodb.com/docs/compass/master/) verwendet werden.i
 
-
+# Anwendungg
+In [Beispiel MongoDB-API](https://github.com/mbeier1406/MongoDB/tree/main/src) befindet sich ein Beispiel für die Implementierung eines
+CRUD-Interfaces zur Nutzung von MongoDB in Java.z
 
