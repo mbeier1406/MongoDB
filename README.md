@@ -293,5 +293,7 @@ erx_202307
 
 # Anwendung
 
+Der exemplarische [CRUD-Client](https://github.com/mbeier1406/MongoDB) unterstützt keine Transaktionen, da die beschriebene Datenbank als *stand-alone* Lösung,
+und nicht als *shared database cluster* oder *replica set* aufgesetzt ist.
 
 
