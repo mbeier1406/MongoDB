@@ -334,7 +334,7 @@ Anwendung der Prinzipien der Datenmodellierung:
 * 1:1/few/many-Relationen mit eingebetteten Dokumenten (auf die referenzierten Daten wird nicht unabhängig zugegriffen, kleine Datenmengen) oder Child/Parent-Referenzen über die Objekt-Id: in diesem Beispiel nicht erforderlich
 
 
-# Anwendungg
+# Anwendung
 
 Der exemplarische [CRUD-Client](https://github.com/mbeier1406/MongoDB) unterstützt keine Transaktionen, da die beschriebene Datenbank als *stand-alone* Lösung,und nicht als *shared database cluster* oder *replica set* aufgesetzt ist. Entsprechend wird auch kein *sharding* eingesetzt. *Full-text Search* wird nicht benötigt, da nicht nach E-Rezept-Daten
 gesucht werden muss.
