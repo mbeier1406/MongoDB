@@ -179,6 +179,7 @@ roles: [ { role: "userAdminAnyDatabase", db: "admin" }, "readWriteAnyDatabase" ]
 /* Für Superuser admin> db.grantRolesToUser('root', [{ role: 'root', db: 'admin' }]) */
 admin> db.runCommand({ connectionStatus: 1 })
 /* Authinfo anzeigen */
+admin> quit
 ```
 
 Damit die Authentifizierung wirksam wir muss sie in <code>/etc/mongod.conf</code> konfiguriert werden.
@@ -223,8 +224,21 @@ Anlegen einer Datenbank <i>erezepte</i> mit einer Collection <i>erx_202307</i> U
 $ mongosh -u root -p --authenticationDatabase=admin
 Enter password: ****
 
-admin> use erezepte
+admin> db.createUser({ user: "erx", pwd: passwordPrompt(), roles: [{ role: "readWrite", db: "erezepte" }] })
+Enter password
+***{ ok: 1 } /* User erx darf Dokumente einstellen und lesen */
+admin> use erezepte;
+erezepte> db.grantRolesToUser("erx", [{role: "dbAdmin", db: "erezepte"}]); /* "erx" muss später ein Schema zuordnen dürfen! */
+{ ok: 1 }
+
+$ mongosh -u erx -p --authenticationDatabase=erezepte
+test> use erezepte
 switched to db erezepte /* DB existiert hier noch nicht */
+erezepte> db.getUsers() /* Erzeugten User ansehen */
+erezepte> use admin
+switched to db admin
+admin> db.system.users.find()
+[ ... ] /* zeigt die User root und erx an */
 erezepte> db.erx_202307.insert({eRezeptId: '123.456.789.00', eRezeptData: 'ZVJlemVwdAo='})
 DeprecationWarning: Collection.insertOne() is deprecated. Use insertOne, insertMany, or bulkWrite.
 {
@@ -242,16 +256,9 @@ DeprecationWarning: Collection.insertOne() is deprecated. Use insertOne, insertM
 erezepte> db.erx_202307.createIndex({ "eRezeptId": 1 }, { unique: true })
 eRezeptId_1
 
-erezepte> db.createUser({ user: "erx", pwd: passwordPrompt(), roles: [{ role: "readWrite", db: "erezepte" }] })
-Enter password
-***{ ok: 1 } /* User erx darf Dokumente einstellen und lesen */
-
-erezepte> db.getUsers() /* Erzeugten User ansehen */
-erezepte> use admin
-switched to db admin
-admin> db.system.users.find()
-[ ... ] /* zeigt die User root und erx an */
 ```
+
+# Nutzung der Datenbank über die Shell
 
 Der neu angelegt User kann jetzt verwendet werden:
 
@@ -266,6 +273,36 @@ switched to db erezepte
 /* Standard CRUD Operationen */
 erezepte> db.erx_202307.insertOne({ eRezetId: '123.456.789.00', eRezeptData: '0987654321FEDCBA='});
 erezepte> db.erx_202307.insertMany([ { eRezeptId: '123.456.788.00', eRezeptData: 'FEDCBA0987654321=' }, { eRezeptId: '123.456.787.00', eRezeptData: 'ABCDEF1234567890=' } ]);
+erezepte> db.runCommand({ /* Schema zuordnen um die Konsistenz der eingestellten Dokumente zu sichern */
+    "collMod": "erx_202307",
+    "validator": {
+        $jsonSchema: {
+	    "bsonType": "object",
+	    "description": "Enthaelt jeweils ein E-Rezept mit ID und Daten",
+	    "required": [ "eRezeptId", "eRezeptData", "requestIds" ],
+	    "properties": {
+		"eRezeptId": {
+		    "bsonType": "string",
+		    "maxLength": 222,
+		    "description": "Eindeutige ID des E-Rezeptes"
+		},
+		"eRezeptData": {
+		    "bsonType": "string",
+		    "description": "Inhalt des E-Rezeptes verschlüsselt"
+		},
+		"requestIds": {
+		    "bsonType": "array",
+		    "description": "Mit welchem Request das E-Rezept eingereicht wurde",
+		    "minItems": 1,
+		    "uniqueItems": true,
+		    "items": {
+		    	"bsonType": "number"
+		    }
+		}
+	    }
+        }
+    }
+});
 erezepte> db.erx_202307.find().pretty();
 erezepte> db.erx_202307.find({ eRezeptId: '123.456.787.00' });
 erezepte> db.erx_202307.find({ eRezeptId: { $ne: '123.456.788.00' } }); /* Alle außer dem genannten */
@@ -291,9 +328,15 @@ erezepte> show collections;
 erx_202307
 ```
 
-# Anwendung
+Anwendung der Prinzipien der Datenmodellierung:
 
-Der exemplarische [CRUD-Client](https://github.com/mbeier1406/MongoDB) unterstützt keine Transaktionen, da die beschriebene Datenbank als *stand-alone* Lösung,
-und nicht als *shared database cluster* oder *replica set* aufgesetzt ist.
+* Zusammen speichern, was in einem Zugriff abgerufen wird: in dem E-Rezept-Beispiel sind ID und Daten in einem Dokument gespeichert. 
+* 1:1/few/many-Relationen mit eingebetteten Dokumenten (auf die referenzierten Daten wird nicht unabhängig zugegriffen, kleine Datenmengen) oder Child/Parent-Referenzen über die Objekt-Id: in diesem Beispiel nicht erforderlich
+
+
+# Anwendungg
+
+Der exemplarische [CRUD-Client](https://github.com/mbeier1406/MongoDB) unterstützt keine Transaktionen, da die beschriebene Datenbank als *stand-alone* Lösung,und nicht als *shared database cluster* oder *replica set* aufgesetzt ist. Entsprechend wird auch kein *sharding* eingesetzt. *Full-text Search* wird nicht benötigt, da nicht nach E-Rezept-Daten
+gesucht werden muss.
 
 
