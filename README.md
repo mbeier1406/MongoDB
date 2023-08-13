@@ -8,16 +8,16 @@
 
 # MongoDB
 MongoDB installieren und Java-Client bereitstellen. Dieses Beispiel verwendet den einfachsten Fall, d. h. eine
-Standalone Installation ohne externen Netzwerkzugriff. Allerdings wird Authetifizierung implementiert.
+Standalone Installation ohne externen Netzwerkzugriff. Allerdings wird Authetifizierung und RBAC implementiert.
 
 ## Systemvoraussetzungen
 Diese Anleitung wurde in folgender Umgebung getestet:
 
-|Item             |Einstelung                   |Info                         |
+|Item             |Einstellung                  |Info                         |
 | :-------------: | :-------------------------: | :-------------------------: |
 |Systemarchitektur|x86_64                       |[Unterstützte Systemplattformen](https://www.mongodb.com/docs/manual/administration/production-notes/#platform-support-notes)|
 |Betriebssystem   |Ubuntu 22.04.2 LTS           |[Unterstützte Betriebssysteme](https://www.mongodb.com/docs/manual/administration/production-notes/#std-label-prod-notes-recommended-platforms)|
-|MngoDB           |Version 6.0 Community Edition|[Release Notes](https://www.mongodb.com/docs/manual/release-notes/)|
+|MongoDB           |Version 6.0 Community Edition|[Release Notes](https://www.mongodb.com/docs/manual/release-notes/)|
 
 ## Einstellungen für den Produktionsbetrieb
 Die offizielle Anleitung zur Installation befindet sich auf der
@@ -31,10 +31,10 @@ beachtet werden. Insbesondere:
 		lediglich die Standalone-Lösung betrachtet.
 	</li>
 	<li>
-		<b>Speichekonfiguration für Datenbankdateien</b>:	
+		<b>Speicherkonfiguration für Datenbankdateien</b>:	
 		Der <a href="https://www.mongodb.com/docs/v6.0/reference/configuration-options/#mongodb-setting-storage.dbPath">dbPath</a> legt den Speicherort für die
-		Datenbankdateien fest. Hier ist ein eigenes Dateisystem sinnvoll um Abhängigkeiten zu anderen Programmen zu vermeiden. Es dürfen sich dort nur Dateien
-		befinden, die zur aktuell konfigurierten <a href="https://www.mongodb.com/docs/v6.0/core/storage-engines/">Speichertechnik</a>. Für das Verzeichnis
+		Datenbankdateien fest. Hier ist ein eigenes Dateisystem sinnvoll um Abhängigkeiten zu anderen Programmen zu vermeiden. Es sollen sich dort nur Dateien
+		befinden, die zur aktuell konfigurierten <a href="https://www.mongodb.com/docs/v6.0/core/storage-engines/">Speichertechnik</a> passen. Für das Verzeichnis
 		benötigt MongoDB Lese- und Schreibrechte. Virenscanner müssen das Verzichnis ignorieren. Es kann eine Speichertechnik mit automatischer Verschlüsselung
 		oder Kompression konfiguriert werden. Die Standard Speicherkonfiguraation
 		<i><a href="https://www.mongodb.com/docs/v6.0/core/wiredtiger/#std-label-storage-wiredtiger">Wired Tiger</a></i> wird beibehalten.
@@ -85,7 +85,7 @@ Für den Betrieb mit <a href="https://www.mongodb.com/docs/v6.0/administration/p
 ## Installation
 Installiert wird das offizielle <i>mongodb-org</i> Paket in der Version MongoDB Community für
 [Ubuntu 22.04](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/). Das eventuell in der Ubuntu-Version
-vorinstallierte <i>mongodb</i>-Paket muss zuvor de-nstalliert werden! Damit das entsprechende Paket-Managementsystem verwendet
+vorinstallierte <i>mongodb</i>-Paket muss zuvor de-installiert werden! Damit das entsprechende Paket-Managementsystem verwendet
 werden kann, muss der öffentlich Schlüssel installiert werden. Zur Verwendung ist <i>gnupg</i> erforderlich, das ggf. zuvor
 installiert werden muss:
 
@@ -102,8 +102,8 @@ wird wie folgt installiert:.
 	   sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg \
 	   --dearmor
 
-Der Public Key befindet sich jetzt in ``/usr/share/keyrings/mongodb-server-6.0.gpg``. Damit das Paket-Managementsystem verwendet werdenkann,
-muss ein entsprechndes <i>list file</i> (``/etc/apt/sources.list.d/mongodb-org-6.0.list`)angelegt werden. Dies wird für Ubuntu Version 22 mit
+Der Public Key befindet sich jetzt in ``/usr/share/keyrings/mongodb-server-6.0.gpg``. Damit das Paket-Managementsystem verwendet werden kann,
+muss ein entsprechndes <i>list file</i> (``/etc/apt/sources.list.d/mongodb-org-6.0.list`) angelegt werden. Dies wird für Ubuntu Version 22 mit
 folgender Anweisung erledigt:
 
 	$ echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
@@ -120,7 +120,8 @@ Der automatische Start des Dienstes wird mit folgendem Kommando eingerichtet:
 
 	$ sudo systemctl enable mongod
 
-Manueller Start/Stopp entsprechend über ``sudo systemctl start/stop/restart mongod``.
+Manueller Start/Stopp entsprechend über ``sudo systemctl start/stop/restart mongod``. Während der Installation wird ein Benutzer und eine Gruppe <i>mongodb</i>
+angelegt.
 
 Das Paket <i>mongodb-org</i> enthält folgende Pakete, die automatisch mit installiert werden:
 
@@ -128,26 +129,16 @@ Das Paket <i>mongodb-org</i> enthält folgende Pakete, die automatisch mit insta
 - <i>mongodb-mongosh</i>: die [MongoDB Shell](https://www.mongodb.com/docs/mongodb-shell/#mongodb-binary-bin.mongosh)
 - <i>mongodb-org-tools</i>: verschiedene Diagnosetools, Im- und Exportwerkzeuge usw.
 
+Da die Datenbank in dieser Demo nicht über das Netzwerk erreichbar sein soll, ist das Einrichten einer Firewall
+(z. B. [ufw](https://wiki.ubuntuusers.de/ufw/)) optional.
+
 ## Konfiguration
 
 ### Netzwerk
 
 Nach der Installation ist der Service standardmäßig nur über das lokale loopback Interface zu erreichen.
 Mittels Konfigurationsdatei bzw. Kommandozeilenargument kann die [bindIp](https://www.mongodb.com/docs/manual/reference/configuration-options/#mongodb-setting-net.bindIp)
-gesetzt werden. Wird in diesem Beispiel nicht verwendet (siehe [IP Binding](https://www.mongodb.com/docs/manual/core/security-mongodb-configuration/)).
-
-### Sicherheit
-
-Falls die Installation über das Netzwerk erreichbar ist, sollten folgende Sicherheitsempfehlungen beachtet werden:
-
-- [Checklste](https://www.mongodb.com/docs/manual/administration/security-checklist/)
-- [Authetifizierung](https://www.mongodb.com/docs/manual/administration/security-checklist/#std-label-checklist-auth)
-- [Serverhärtung](https://www.mongodb.com/docs/manual/core/security-hardening/)
-
-Da die Datenbank in dieser Demo nicht über das Netzwerk erreichbar sein soll, ist das Einrichten einer Firewall
-(z. B. [ufw](https://wiki.ubuntuusers.de/ufw/)) optional. Während der Installation wird ein Benutzer und eine Gruppe <i>mongodb</i>
-angelegt.
-
+gesetzt werden. Wird in diesem Beispiel nicht verwendet (siehe [IP Binding](https://www.mongodb.com/docs/manual/core/security-mongodb-configuration/)). Hinweise dazu ganz unten.
 ### Monitoring
 
 Auslastung der Datenbank anzeigen:
@@ -275,4 +266,39 @@ der [MongoDB Compass](https://www.mongodb.com/docs/compass/master/) verwendet we
 # Anwendungg
 In [Beispiel MongoDB-API](https://github.com/mbeier1406/MongoDB/tree/main/src) befindet sich ein Beispiel für die Implementierung eines
 CRUD-Interfaces zur Nutzung von MongoDB in Java.z
+
+# Hinweise
+
+## Netzwerkbetrieb
+
+
+Falls die Installation über das Netzwerk erreichbar ist, sollten folgende Sicherheitsempfehlungen beachtet werden:
+
+- [Checklste](https://www.mongodb.com/docs/manual/administration/security-checklist/)
+- [Authetifizierung](https://www.mongodb.com/docs/manual/administration/security-checklist/#std-label-checklist-auth)
+- [Serverhärtung](https://www.mongodb.com/docs/manual/core/security-hardening/)
+
+Konfigurationsbeispiel in ``/etc/mongod.conf``:
+
+```
+# network interfaces
+net:
+  port: 27017
+  bindIp: 192.168.83.128
+```
+
+Aufruf der CLI dann: ``$ mongosh -u erx -p --authenticationDatabase=erezepte mongodb://192.168.83.128:27017``. <b>Unbedingt</b> die
+oben genannten Sicherheitshinweise bzgl Serverhärtung, Authentifizierung usw. beachten:
+<p>Konfiguration MongoDB:</p>
+* [Client-Authentication](https://www.mongodb.com/docs/manual/administration/security-checklist/#std-label-checklist-auth) konfigurieren
+* Access Control und User-Authentifizierung (s.o.)
+* Einsatz von RBAC (s.o.)
+* Kommunikation über [TLS verschlüsseln](https://www.mongodb.com/docs/manual/tutorial/configure-ssl/)
+* Falls die gespeicherten Daten selbst nicht verschlüsselt sind, bei WiredTiger [Verschlüsselung](https://www.mongodb.com/docs/manual/core/security-encryption-at-rest/) aktivieren
+* Beim start die <i>--noscripting</i>-Option verwenden um JavaScript usw. zu de-aktivieren
+<p>Konfiguration Betriebssystem:</p>
+* [Netzwerkhärtungen](https://www.mongodb.com/docs/manual/core/security-hardening/) (IP-Forwarding ausschalten etc.) und weietre Maßnahmen wie Ant-Virus usw. implementieren
+* Betriebssystem: in ein vertrauenswürdiges Netzwerk einbinden, kein root-ssh Zugang, Port nur für Trusted Clients (Firewall)
+* Monitoring, Logging einschalten und überwachen
+* MongoDB in einem dedizierten User ohne spezielle Berechtigungen ausführen
 
