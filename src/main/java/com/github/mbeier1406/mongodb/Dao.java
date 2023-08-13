@@ -30,11 +30,30 @@ public interface Dao<T> {
 	public List<String> getCollectionNames(final String db);
 
 	/**
+	 * Fügt ein E-Rezept in die vorgegebene Collection ein.
+	 * @param collectionName die Collection, in die das Rezept eingestellt werden soll
+	 * @param eRezeptId ID des Rezepts
+	 * @param t das E-Rezept
+	 * @return die Id des erzeugten Datensatzes
+	 */
+	public String insert(final String collectionName, final String eRezeptId, final T t);
+
+	/**
 	 * Liefert zu einer ID das zugehörige E-Rezept.</p>
+	 * <b>Achtung</b>: sucht in allen Collections aller Datenbanken!
+	 * @param eRezeptId die Id
+	 * @return <b>true</b>, wenn das E-Rezept gelöscht wurde, sonst <b>false</b>
+	 */
+	public boolean delete(final String collectionName, final String eRezeptId);
+
+	/**
+	 * Löscht das E-Rezept mit der angegebenen ID.</p>
 	 * <b>Achtung</b>: sucht in allen Collections aller Datenbanken!
 	 * @param eRezeptId die Id
 	 * @return das E-Rezept
 	 */
 	public Optional<T> find(final String eRezeptId);
+
+	public long update(final String collectionName, final T t);
 
 }

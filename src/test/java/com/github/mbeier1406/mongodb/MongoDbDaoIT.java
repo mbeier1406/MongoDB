@@ -1,9 +1,10 @@
 package com.github.mbeier1406.mongodb;
 
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -12,7 +13,9 @@ import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.Before;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 import com.github.mbeier1406.mongodb.Dao.ERezept;
 
@@ -22,10 +25,19 @@ import com.github.mbeier1406.mongodb.Dao.ERezept;
  * Nich beim automatischen Build ausführen.
  * @author mbeier
  */
-@SuppressWarnings("deprecation")
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class MongoDbDaoIT {
 
 	private static final Logger LOGGER = LogManager.getLogger(MongoDbDaoIT.class);
+
+	/** Die E-Rezept DB, mit der getestet wird ist {@value} */
+	private static final String EREZEPTE_DB = "erezepte";
+
+	/** Die Collection, mit der getestet wird ist {@value} */
+	private static final String EREZEPTE_COLL = "erx_202307";
+
+	/** Die E-Rezept ID mit der getestet wird ist {@value} */
+	private static final String EREZEPT_ID = "123.456.790.00";
 
 	/** Das zu testende Objekt */
 	public MongoDbDao mongoDbDao;
@@ -38,35 +50,69 @@ public class MongoDbDaoIT {
 
 	/** Prüfen, ob die Standard-URL korrekt geladen wird */
 	@Test
-	public void testeUrl() {
+	public void a_testeUrl() {
+		mongoDbDao.delete(EREZEPTE_COLL, EREZEPT_ID); // Falls das Test-Erezept sich noch in der DB befindet
 		LOGGER.info("URL: {}", mongoDbDao.getConnectionInfo());
 		assertThat(mongoDbDao.getConnectionInfo(), equalTo("mongodb://localhost:27017"));
 	}
 
 	/** Stellt sicher, dass mit dem aktuellen Client auf die E-Rezept Datenbank zugegriffen werden kann */
 	@Test
-	public void checktDatabaseERezepte() {
+	public void b_checktDatabaseERezepte() {
 		List<String> databaseNames = mongoDbDao.getDatabaseNames();
 		LOGGER.info("databaseNames={}", databaseNames);
-		assertThat(databaseNames, hasItem("erezepte"));
+		assertThat(databaseNames, hasItem(EREZEPTE_DB));
 	}
 
 	/** Stellt sicher, dass mit dem aktuellen Client auf die Collection "erx_202307" in der E-Rezept Datenbank zugegriffen werden kann */
 	@Test
-	public void checktCollectionERezepte() {
-		List<String> collections = mongoDbDao.getCollectionNames("erezepte");
+	public void c_checktCollectionERezepte() {
+		List<String> collections = mongoDbDao.getCollectionNames(EREZEPTE_DB);
 		LOGGER.info("collections={}", collections);
-		assertThat(collections, hasItem("erx_202307"));
+		assertThat(collections, hasItem(EREZEPTE_COLL));
 	}
 
-	/** Stellt sicher, dass das zuvor manuell eingestellte E-Rezept gefunden wird */ 
+	/** Es wird erwartet, dass beim Einfügen des E-Rezeptes keine Exception geworfen und eine ObjectId geliefert wird */
 	@Test
-	public void testeERezeptSuche() {
-		final var eRezeptId = "123.456.790.00";
-		Optional<ERezept> eRezept = mongoDbDao.find(eRezeptId);
+	public void d_testeInsert() {
+		final var objectId = mongoDbDao.insert(EREZEPTE_COLL, EREZEPT_ID, new ERezept(EREZEPT_ID, "ZVJlemVwdAoXX="));
+		LOGGER.info("objectId={}", objectId);
+		assertThat(objectId, notNullValue());
+	}
+
+	/** Stellt sicher, dass das zuvor eingestellte E-Rezept gefunden wird */ 
+	@Test
+	public void e_testeERezeptSuche() {
+		Optional<ERezept> eRezept = mongoDbDao.find(EREZEPT_ID);
 		LOGGER.info("eRezept={}", eRezept);
 		assertThat(eRezept, not(equalTo(Optional.empty())));
-		assertThat(eRezept.get().eRezeptId(), equalTo((eRezeptId)));
+		assertThat(eRezept.get().eRezeptId(), equalTo((EREZEPT_ID)));
+	}
+
+	/** Es wird erwartet, dass beim Einfügen des E-Rezeptes keine Exception geworfen und eine ObjectId geliefert wird */
+	@Test
+	public void f_testeDelete() {
+		final var geloescht = mongoDbDao.delete(EREZEPTE_COLL, EREZEPT_ID);
+		LOGGER.info("geloescht={}", geloescht);
+		assertThat(geloescht, notNullValue());
+		assertThat(geloescht, equalTo(true));
+	}
+
+	/** Stellt sicher, dass das zuvor gelöschte E-Rezept nicht mehr gefunden wird */ 
+	@Test
+	public void g_testeERezeptSuche() {
+		Optional<ERezept> eRezept = mongoDbDao.find(EREZEPT_ID);
+		LOGGER.info("eRezept={}", eRezept);
+		assertThat(eRezept, equalTo(Optional.empty()));
+	}
+
+	/** Es wird erwartet, dass beim Update des E-Rezeptes ein Datensatz geändert wird */
+	@Test
+	public void h_testeUpdate() {
+		d_testeInsert(); // E-Rezept wieder anlegen
+		final var anzahlGeaendert = mongoDbDao.update(EREZEPTE_COLL, new ERezept(EREZEPT_ID, "ABCDEF0123456789="));
+		LOGGER.info("anzahlGeaendert={}", anzahlGeaendert);
+		assertThat(anzahlGeaendert, equalTo(1L));
 	}
 
 }

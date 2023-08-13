@@ -170,6 +170,7 @@ roles: [ { role: "userAdminAnyDatabase", db: "admin" }, "readWriteAnyDatabase" ]
 /* Für Superuser admin> db.grantRolesToUser('root', [{ role: 'root', db: 'admin' }]) */
 admin> db.runCommand({ connectionStatus: 1 })
 /* Authinfo anzeigen */
+admin> quit
 ```
 
 Damit die Authentifizierung wirksam wir muss sie in <code>/etc/mongod.conf</code> konfiguriert werden.
@@ -214,28 +215,43 @@ Anlegen einer Datenbank <i>erezepte</i> mit einer Collection <i>erx_202307</i> U
 $ mongosh -u root -p --authenticationDatabase=admin
 Enter password: ****
 
-admin> use erezepte
+admin> db.createUser({ user: "erx", pwd: passwordPrompt(), roles: [{ role: "readWrite", db: "erezepte" }] })
+Enter password
+***{ ok: 1 } /* User erx darf Dokumente einstellen und lesen */
+admin> use erezepte;
+erezepte> db.grantRolesToUser("erx", [{role: "dbAdmin", db: "erezepte"}]); /* "erx" muss später ein Schema zuordnen dürfen! */
+{ ok: 1 }
+
+$ mongosh -u erx -p --authenticationDatabase=erezepte
+test> use erezepte
 switched to db erezepte /* DB existiert hier noch nicht */
+erezepte> db.getUsers() /* Erzeugten User ansehen */
+erezepte> use admin
+switched to db admin
+admin> db.system.users.find()
+[ ... ] /* zeigt die User root und erx an */
 erezepte> db.erx_202307.insert({eRezeptId: '123.456.789.00', eRezeptData: 'ZVJlemVwdAo='})
 DeprecationWarning: Collection.insertOne() is deprecated. Use insertOne, insertMany, or bulkWrite.
 {
   acknowledged: true,
   insertedIds: { '0': ObjectId("64a5a358f060147b960cfe84") }
 } /* DB wurde hier angelegt */
-/* Zum Löschen db.erx_202307.delete() */
+/*
+	Zum Löschen
+	db.erx_202307.find()
+	db.erx_202307.deleteOne({_id: ObjectId("..."))
+	Leeren:
+	db.erx_202307.remove({})
+*/
+/* E-Rezepte sollen eindeutig sein! */
+erezepte> db.erx_202307.createIndex({ "eRezeptId": 1 }, { unique: true })
+eRezeptId_1
 
-erezepte> db.createUser({ user: "erx", pwd: passwordPrompt(), roles: [{ role: "readWrite", db: "erezepte" }] })
-Enter password
-***{ ok: 1 } /* User erx darf Dokumente einstellen und lesen */
-
-erezepte> db.getUsers() /* Erzeugten User ansehen */
-erezepte> use admin
-switched to db admin
-admin> db.system.users.find()
-[ ... ] /* zeigt die User root und erx an */
 ```
 
-Der neu angelegte User kann jetzt verwendet werden:
+# Nutzung der Datenbank über die Shell
+
+Der neu angelegt User kann jetzt verwendet werden:
 
 ```
 $ mongosh -u erx -p --authenticationDatabase=erezepte
@@ -244,26 +260,74 @@ test> show dbs
 erezepte  72.00 KiB
 test> use erezepte
 switched to db erezepte
-erezepte> show collections
+
+/* Standard CRUD Operationen */
+erezepte> db.erx_202307.insertOne({ eRezetId: '123.456.789.00', eRezeptData: '0987654321FEDCBA='});
+erezepte> db.erx_202307.insertMany([ { eRezeptId: '123.456.788.00', eRezeptData: 'FEDCBA0987654321=' }, { eRezeptId: '123.456.787.00', eRezeptData: 'ABCDEF1234567890=' } ]);
+erezepte> db.runCommand({ /* Schema zuordnen um die Konsistenz der eingestellten Dokumente zu sichern */
+    "collMod": "erx_202307",
+    "validator": {
+        $jsonSchema: {
+	    "bsonType": "object",
+	    "description": "Enthaelt jeweils ein E-Rezept mit ID und Daten",
+	    "required": [ "eRezeptId", "eRezeptData", "requestIds" ],
+	    "properties": {
+		"eRezeptId": {
+		    "bsonType": "string",
+		    "maxLength": 222,
+		    "description": "Eindeutige ID des E-Rezeptes"
+		},
+		"eRezeptData": {
+		    "bsonType": "string",
+		    "description": "Inhalt des E-Rezeptes verschlüsselt"
+		},
+		"requestIds": {
+		    "bsonType": "array",
+		    "description": "Mit welchem Request das E-Rezept eingereicht wurde",
+		    "minItems": 1,
+		    "uniqueItems": true,
+		    "items": {
+		    	"bsonType": "number"
+		    }
+		}
+	    }
+        }
+    }
+});
+erezepte> db.erx_202307.find().pretty();
+erezepte> db.erx_202307.find({ eRezeptId: '123.456.787.00' });
+erezepte> db.erx_202307.find({ eRezeptId: { $ne: '123.456.788.00' } }); /* Alle außer dem genannten */
+erezepte> db.erx_202307.find({ eRezeptId: { $in: [ '123.456.788.00', '123.456.790.00' ] } }); /* Aus einer Liste */
+erezepte> db.erx_202307.find({ datum: { $lt: ISODate("2023-07-16T01:14:24.001Z") } }); /* entsprechend $gt */
+erezepte> db.erx_202307.find({ datum: { $lt: ISODate("2023-07-16T01:14:24.001Z") }, eRezetId: '123.456.789.00' }); /* Kombination mehrerer Attribute, implizites AND */
+erezepte> db.erx_202307.find({ $or: [ { datum: { $lt: ISODate("2023-07-16T01:14:24.001Z") } }, { eRezetId: '123.456.789.00' } ] }); /* Entsprechend $and */
+erezepte> db.erx_202307.find({ requestIds: 2 }); /* Abfrage von Werten eines Arrays */
+erezepte> db.erx_202307.find({ "wawi.version": { $gt: 1 } }); /* Abfrage einer Unterstruktur */
+erezepte> db.erx_202307.find({ requestIds: 2 }, { "wawi.name": 1, "wawi.version": 1 } ); /* Projektionen: ausgewählte Felder anzeigen (Inklusion) */
+erezepte> db.erx_202307.find({}, { wawi: 0 }); /* Projektionen: ausgewählte Felder anzeigen (Exklusion), z. B. ohne ID: ...find({}, { _id: 0 }) */
+erezepte> db.erx_202307.find({}).limit(1); /* Treffermenge begrenzen */
+erezepte> db.erx_202307.find({ "wawi.version": { $gt: 0 } }, { _id: 0, eRezeptId: 1, eRezeptData: 1 }).limit(10).sort({ eRezeptId: -1}); /* Ausgabe absteigend sortieren und begrenzen */
+erezepte> db.erx_202307.countDocuments(); /* Oder erezepte> db.erx_202307.find({}).count(); */
+erezepte> db.erx_202307.updateOne({ eRezeptId: '123.456.787.00' }, { $set: { eRezeptData: 'ABCDEF1234567890xxx=' } });
+erezepte> db.erx_202307.updateOne({ eRezeptId: '123.456.790.00' }, { $set: { requestIds: [ 1, 2, 3 ] }}); /* Array als Attribut hinzufügen */
+erezepte> db.erx_202307.updateOne({ eRezeptId: '123.456.788.00' }, { $set: { wawi: { name: 'GFI', version: 1 } }}); /* Struktur als Attribut hinzufügen */
+erezepte> db.erx_202307.updateMany({}, { $set: { datum: ISODate("2023-07-16T01:14:24.000Z") }}); /* Ein Feld hinzufügen */
+erezepte> db.erx_202307.deleteOne({ eRezeptId: '123.456.787.00' });
+/* erezepte> db.erx_202307.deleteMany(...); */
+
+erezepte> show collections;
 erx_202307
-erezepte> db.erx_202307.find({}).pretty(); /* Gesamte Collection anzeigen */
-erezepte> db.erx_202307.find({$and: [{requestId: 2}, {eRezeptId: '123.456.790.03'}]}).pretty(); /* bestimmtes E-Rezept suchen */
-erezepte> db.erx_202307.createIndex({"requestId": 1, "eRezeptId": 1}, {"unique": true}); /* Unique Index anlegen */
-erezepte> db.erx_202307.find({$and: [{requestId: 2}, {eRezeptId: '123.456.790.03'}]}).explain("executionStats"); /* Prüfen, ob ein Index benutzt wird */
-erezepte> db.erx_202307.find({requestId: { $gt: 1 }}).sort({eRezeptId: -1}); /* Suche nach RequestId > 2 und absteigend nach E-Rezept-ID sortieren */
-erezepte> db.erx_202307.getIndexes();
-/* Aggregierung nach Request-ID */
-erezepte> db.erx_202307.aggregate([
-	{$match: {requestId: {$in: [ 2,3]}}},
-	{ $sort: { requestId : -1}},
-	{ $group: {"_id": "$requestId", "anz": {$sum: 1}}}
-]);
 ```
 
 Falls eine intensive Benutzung der Datenbank erforderlch ist, kann statt <code>mongosh</code> auch
 der [MongoDB Compass](https://www.mongodb.com/docs/compass/master/) verwendet werden.i
 
-# Anwendungg
+Anwendung der Prinzipien der Datenmodellierung:
+
+* Zusammen speichern, was in einem Zugriff abgerufen wird: in dem E-Rezept-Beispiel sind ID und Daten in einem Dokument gespeichert. 
+* 1:1/few/many-Relationen mit eingebetteten Dokumenten (auf die referenzierten Daten wird nicht unabhängig zugegriffen, kleine Datenmengen) oder Child/Parent-Referenzen über die Objekt-Id: in diesem Beispiel nicht erforderlich
+
+# Anwendung
 In [Beispiel MongoDB-API](https://github.com/mbeier1406/MongoDB/tree/main/src) befindet sich ein Beispiel für die Implementierung eines
 CRUD-Interfaces zur Nutzung von MongoDB in Java.z
 
@@ -271,6 +335,8 @@ CRUD-Interfaces zur Nutzung von MongoDB in Java.z
 
 ## Netzwerkbetrieb
 
+Der exemplarische [CRUD-Client](https://github.com/mbeier1406/MongoDB) unterstützt keine Transaktionen, da die beschriebene Datenbank als *stand-alone* Lösung,und nicht als *shared database cluster* oder *replica set* aufgesetzt ist. Entsprechend wird auch kein *sharding* eingesetzt. *Full-text Search* wird nicht benötigt, da nicht nach E-Rezept-Daten
+gesucht werden muss.
 
 Falls die Installation über das Netzwerk erreichbar ist, sollten folgende Sicherheitsempfehlungen beachtet werden:
 

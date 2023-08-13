@@ -1,6 +1,7 @@
 package com.github.mbeier1406.mongodb;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.logging.log4j.CloseableThreadContext.put;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
+import org.apache.logging.log4j.CloseableThreadContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bson.Document;
@@ -24,10 +26,22 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
+import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.InsertOneResult;
+import com.mongodb.client.result.UpdateResult;
 
 /**
- * MongoDB-Implementierung für das Persitieren von E-Rezepten.
+ * MongoDB-Implementierung für das Persitieren von E-Rezepten. Die Collection muss zuvor wie fokgt
+ * in einer eigenen Datenbank angelegt worden sein.
+ * <pre><code>
+ * $ mongosh -u erx -p --authenticationDatabase=erezepte
+ * test> use erezepte
+ * erezepte> db.erx_202307.insert({eRezeptId: '123.456.789.00', eRezeptData: 'ZVJlemVwdAo='})
+ * erezepte> db.erx_202307.createIndex({ "eRezeptId": 1 }, { unique: true })
+ * eRezeptId_1
+ * </code></pre>
  * @author mbeier
+ * @see <a href="https://github.com/mbeier1406/MongoDB/tree/main">README</a>
  */
 public class MongoDbDao implements Dao<Dao.ERezept> {
 
@@ -100,28 +114,80 @@ public class MongoDbDao implements Dao<Dao.ERezept> {
 
 	/** {@inheritDoc} */
 	@Override
+	public String insert(final String collectionName, final String eRezeptId, final ERezept eRezept) {
+		try ( CloseableThreadContext.Instance ctx = put("collectionName", collectionName).put("eRezept", eRezept.toString()) ) {
+			final MongoCollection<Document> collection = erxDatabase.getCollection(collectionName);
+			final var document = new Document();
+			document.putIfAbsent("eRezeptId", eRezeptId);
+			document.putIfAbsent("eRezeptData", eRezept.eRezeptData());
+			final InsertOneResult result = collection.insertOne(document);
+			LOGGER.trace("result={}", result);
+			final var _Id = result.getInsertedId().asObjectId().getValue().toHexString();
+			LOGGER.trace("_Id={}", _Id);
+			return _Id;
+		}
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean delete(String collectionName, String eRezeptId) {
+		try ( CloseableThreadContext.Instance ctx = put("collectionName", collectionName).put("eRezeptId", eRezeptId) ) {
+			final MongoCollection<Document> collection = erxDatabase.getCollection(collectionName);
+			final var document = new Document();
+			document.putIfAbsent("eRezeptId", eRezeptId);
+			DeleteResult result = collection.deleteOne(document);
+			LOGGER.trace("result={}", result);
+			final var anzahlGeloescht = result.getDeletedCount();
+			LOGGER.trace("anzahlGeloescht={}", anzahlGeloescht);
+			return anzahlGeloescht == 1;
+		}
+	}
+
+	/** {@inheritDoc} */
+	@Override
 	public Optional<ERezept> find(String eRezeptId) {
-		final Map<String, ERezept> eRezept = new HashMap<>();
-		getDatabaseNames().stream().forEach(
-				db -> {
-					getCollectionNames(db).stream().forEach(coll -> {
-						final Document query = new Document();
-						query.put("eRezeptId", eRezeptId);
-						final var database = mongoClient.getDatabase(db);
-						final MongoCollection<Document> collection = database.getCollection(coll);
-						final FindIterable<Document> cursor = collection.find(query);
-						try ( final MongoCursor<Document> itr = cursor.cursor() ) {
-							while ( itr.hasNext() ) {
-								if ( eRezept.get(eRezeptId) != null )
-									throw new IllegalArgumentException("E-Rezept mehrfach vorhanden: "+eRezeptId);
-								final Document erx = itr.next();
-								String eRezeptData = (String) erx.get("eRezeptData");
-								eRezept.put(eRezeptId, new ERezept(eRezeptId, eRezeptData));
-							}
+		try ( CloseableThreadContext.Instance ctx = put("eRezeptId", eRezeptId) ) {
+			final Map<String, ERezept> eRezept = new HashMap<>();
+			getDatabaseNames().stream().forEach(db -> {
+				getCollectionNames(db).stream().forEach(coll -> {
+					final Document query = new Document();
+					query.put("eRezeptId", eRezeptId);
+					final var database = mongoClient.getDatabase(db);
+					final MongoCollection<Document> collection = database.getCollection(coll);
+					final FindIterable<Document> cursor = collection.find(query);
+					try ( final MongoCursor<Document> itr = cursor.cursor() ) {
+						while ( itr.hasNext() ) {
+							if ( eRezept.get(eRezeptId) != null )
+								throw new IllegalArgumentException("E-Rezept mehrfach vorhanden: "+eRezeptId);
+							final Document erx = itr.next();
+							final var eRezeptData = (String) erx.get("eRezeptData");
+							eRezept.put(eRezeptId, new ERezept(eRezeptId, eRezeptData));
+							LOGGER.trace("db={}; coll={}; erx={}", db, coll, eRezept.get(eRezeptId));
 						}
-					});
+					}
 				});
-		return Optional.ofNullable(eRezept.get(eRezeptId));
+			});
+			return Optional.ofNullable(eRezept.get(eRezeptId));
+		}
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public long update(final String collectionName, final ERezept eRezept) {
+		try ( CloseableThreadContext.Instance ctx = put("collectionName", collectionName).put("eRezept", eRezept.toString()) ) {
+			final MongoCollection<Document> collection = erxDatabase.getCollection(collectionName);
+			final var query = new Document();
+			query.put("eRezeptId", eRezept.eRezeptId());
+			final var newObject = new Document();
+			newObject.put("eRezeptData", eRezept.eRezeptData());
+			final var updateObject = new Document();
+			updateObject.put("$set", newObject);
+			final UpdateResult result = collection.updateOne(query, updateObject);
+			LOGGER.trace("result={}", result);
+			final var anzahlGeaendert = result.getModifiedCount();
+			LOGGER.trace("anzahlGeaendert={}", anzahlGeaendert);
+			return anzahlGeaendert;
+		}
 	}
 
 	@Override
