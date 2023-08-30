@@ -353,7 +353,9 @@ net:
   bindIp: 192.168.83.128
 ```
 
-Aufruf der CLI dann: ``$ mongosh -u erx -p --authenticationDatabase=erezepte mongodb://192.168.83.128:27017``. <b>Unbedingt</b> die
+Aufruf der CLI dann: ``$ mongosh -u erx -p --authenticationDatabase=erezepte mongodb://192.168.83.128:27017``.
+Optional ``$ mongosh -u erx -p --authenticationDatabase=erezepte --host 192.168.83.128``.
+<b>Unbedingt</b> die
 oben genannten Sicherheitshinweise bzgl Serverhärtung, Authentifizierung usw. beachten:
 <p>Konfiguration MongoDB:</p>
 * [Client-Authentication](https://www.mongodb.com/docs/manual/administration/security-checklist/#std-label-checklist-auth) konfigurieren
